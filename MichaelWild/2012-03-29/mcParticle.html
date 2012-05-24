@@ -1,0 +1,871 @@
+<!DOCTYPE html PUBLIC "-//IETF//DTD HTML 2.0//EN">
+<HTML>
+<HEAD>
+<TITLE>Enscript Output</TITLE>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF" TEXT="#000000" LINK="#1F00FF" ALINK="#FF0000" VLINK="#9900DD">
+<A NAME="top">
+<H1>Contents</H1>
+<OL>
+  <LI><A HREF="#file1">mcParticle.H</A>
+  <LI><A HREF="#file2">mcParticle.C</A>
+  <LI><A HREF="#file3">mcParticleIO.C</A>
+  <LI><A HREF="#file4">mcParticleCloud.H</A>
+  <LI><A HREF="#file5">mcParticleCloud.C</A>
+</OL>
+<HR>
+<A NAME="file1">
+<H1>mcParticle.H 1/5</H1>
+[<A HREF="#top">top</A>][prev][<A HREF="#file2">next</A>]
+<PRE>
+<I><FONT COLOR="#B22222">/*---------------------------------------------------------------------------*\
+Class
+    Foam::mcParticle
+
+Description
+    Incomplete example illustrating how to implement a custom particle class.
+
+Author
+    Michael Wild
+
+SourceFiles
+    mcParticleIO.C
+    mcParticle.C
+
+\*---------------------------------------------------------------------------*/</FONT></I>
+
+#<B><FONT COLOR="#5F9EA0">ifndef</FONT></B> <FONT COLOR="#B8860B">mcParticle_H</FONT>
+#<B><FONT COLOR="#5F9EA0">define</FONT></B> <FONT COLOR="#B8860B">mcParticle_H</FONT>
+
+#<B><FONT COLOR="#5F9EA0">include</FONT></B> <B><FONT COLOR="#BC8F8F">&quot;particle.H&quot;</FONT></B>
+#<B><FONT COLOR="#5F9EA0">include</FONT></B> <B><FONT COLOR="#BC8F8F">&quot;contiguous.H&quot;</FONT></B>
+
+<B><FONT COLOR="#228B22">class</FONT></B> mcParticleCloud;
+
+<B><FONT COLOR="#228B22">class</FONT></B> mcParticle : <B><FONT COLOR="#228B22">public</FONT></B> particle
+{
+  <I><FONT COLOR="#B22222">// Private Data
+</FONT></I>
+    <I><FONT COLOR="#B22222">// ORDER IN DESCENDING DATA SIZE!
+</FONT></I>    <I><FONT COLOR="#B22222">// IF YOU UPDATE THIS LIST, ALSO UPDATE mcParticleIO.C!
+</FONT></I>    scalar m_;   <I><FONT COLOR="#B22222">// 8 byte
+</FONT></I>    vector U_;   <I><FONT COLOR="#B22222">// contiguous 8 byte
+</FONT></I>    vector Ut_;
+    scalar rho_;
+    <I><FONT COLOR="#B22222">/*
+    label  n_;   // 4 byte
+    bool   b_;   // 1 byte
+    */</FONT></I>
+
+<B><FONT COLOR="#228B22">public</FONT></B>:
+
+  TypeName(<B><FONT COLOR="#BC8F8F">&quot;mcParticle&quot;</FONT></B>)
+  <B><FONT COLOR="#228B22">friend</FONT></B> <B><FONT COLOR="#228B22">class</FONT></B> Cloud&lt;mcParticle&gt;;
+
+  <I><FONT COLOR="#B22222">//- Persistent storage and helper functions useful during tracking,
+</FONT></I>  <I><FONT COLOR="#B22222">//  e.g. interpolators.
+</FONT></I>  <B><FONT COLOR="#228B22">class</FONT></B> trackingData :
+    <B><FONT COLOR="#228B22">public</FONT></B> particle::TrackingData&lt;mcParticleCloud&gt;
+  {
+      <I><FONT COLOR="#B22222">// ...
+</FONT></I>  };
+
+  <I><FONT COLOR="#B22222">// Constructors
+</FONT></I>
+    <I><FONT COLOR="#B22222">//- Construct from components
+</FONT></I>    mcParticle(<B><FONT COLOR="#228B22">const</FONT></B> mcParticleCloud&amp;, <B><FONT COLOR="#228B22">const</FONT></B> vector&amp; pos, label celli,
+               scalar m, <B><FONT COLOR="#228B22">const</FONT></B> vector&amp; U, scalar rho);
+    <I><FONT COLOR="#B22222">//- Construct from Istream
+</FONT></I>    mcParticle(<B><FONT COLOR="#228B22">const</FONT></B> Cloud&lt;mcParticle&gt;&amp;, Istream&amp;, <B><FONT COLOR="#228B22">bool</FONT></B> readFields=true);
+    <I><FONT COLOR="#B22222">//- Clone the particle
+</FONT></I>    autoPtr&lt;particle&gt; clone() <B><FONT COLOR="#228B22">const</FONT></B>;
+    <I><FONT COLOR="#B22222">//- Factory class for parallel transfer
+</FONT></I>    <B><FONT COLOR="#228B22">class</FONT></B> iNew
+    {
+      <I><FONT COLOR="#B22222">/* Copy-paste from Foam::particle, s/particle/mcParticle/g */</FONT></I>
+    };
+
+  <I><FONT COLOR="#B22222">// Access
+</FONT></I>
+      <I><FONT COLOR="#B22222">//- Return the particle mass (statistical weight)
+</FONT></I>      scalar m() <B><FONT COLOR="#228B22">const</FONT></B> { <B><FONT COLOR="#A020F0">return</FONT></B> m_; }
+      <I><FONT COLOR="#B22222">//- Return the particle mass (statistical weight)
+</FONT></I>      <B><FONT COLOR="#228B22">inline</FONT></B> scalar&amp; m() { <B><FONT COLOR="#A020F0">return</FONT></B> m_; }
+      <I><FONT COLOR="#B22222">//- Return the particle velocity
+</FONT></I>      <B><FONT COLOR="#228B22">inline</FONT></B> <B><FONT COLOR="#228B22">const</FONT></B> vector&amp; U() <B><FONT COLOR="#228B22">const</FONT></B> { <B><FONT COLOR="#A020F0">return</FONT></B> U_; }
+      <I><FONT COLOR="#B22222">//- Return the particle velocity
+</FONT></I>      <B><FONT COLOR="#228B22">inline</FONT></B> vector&amp; U() { <B><FONT COLOR="#A020F0">return</FONT></B> U_; }
+      <I><FONT COLOR="#B22222">// ...
+</FONT></I>
+  <I><FONT COLOR="#B22222">// Public Member Functions
+</FONT></I>
+    <I><FONT COLOR="#B22222">//- Evolve particle for trackTime
+</FONT></I>    <B><FONT COLOR="#228B22">bool</FONT></B> move(trackingData&amp;, <B><FONT COLOR="#228B22">const</FONT></B> scalar trackTime);
+
+  <I><FONT COLOR="#B22222">// Patch interactions
+</FONT></I>
+    <I><FONT COLOR="#B22222">// SKIPPED hit*Patch FUNCTIONS
+</FONT></I>    hitPatch(<I><FONT COLOR="#B22222">/* ...*/</FONT></I>); <I><FONT COLOR="#B22222">// called before other hit*Patch(/*...*/)
+</FONT></I>
+    <I><FONT COLOR="#B22222">//- Rotate particle properties (e.g. reflection)
+</FONT></I>    <B><FONT COLOR="#228B22">void</FONT></B> transformProperties(<B><FONT COLOR="#228B22">const</FONT></B> tensor&amp;);
+    <I><FONT COLOR="#B22222">//- Shift particle properties (e.g. cyclic patch)
+</FONT></I>    <B><FONT COLOR="#228B22">void</FONT></B> transformProperties(<B><FONT COLOR="#228B22">const</FONT></B> vector&amp;);
+
+  <I><FONT COLOR="#B22222">// I/O
+</FONT></I>
+    <I><FONT COLOR="#B22222">//- Read properties from files &lt;time&gt;/lagrangian/&lt;cloudName&gt;/&lt;prop&gt;
+</FONT></I>    <B><FONT COLOR="#228B22">static</FONT></B> <B><FONT COLOR="#228B22">void</FONT></B> readFields(Cloud&lt;mcParticle&gt;&amp;);
+    <I><FONT COLOR="#B22222">//- Write properties to files &lt;time&gt;/lagrangian/&lt;cloudName&gt;/&lt;prop&gt;
+</FONT></I>    <B><FONT COLOR="#228B22">static</FONT></B> <B><FONT COLOR="#228B22">void</FONT></B> writeFields(<B><FONT COLOR="#228B22">const</FONT></B> Cloud&lt;mcParticle&gt;&amp;);
+    <I><FONT COLOR="#B22222">//- Write properties to stream (e.g. for parallel transfer)
+</FONT></I>    <B><FONT COLOR="#228B22">friend</FONT></B> Ostream&amp; <B><FONT COLOR="#A020F0">operator</FONT></B>&lt;&lt;(Ostream&amp;, <B><FONT COLOR="#228B22">const</FONT></B> mcParticle&amp;);
+};
+
+<I><FONT COLOR="#B22222">// IF CONTAINS NON-CONTIGUOUS DATA
+</FONT></I><I><FONT COLOR="#B22222">/*
+template&lt;&gt;
+inline bool contiguous&lt;mcParticle&gt;()
+{
+  return false;
+}
+*/</FONT></I>
+
+#<B><FONT COLOR="#5F9EA0">endif</FONT></B>
+</PRE>
+<HR>
+<A NAME="file2">
+<H1>mcParticle.C 2/5</H1>
+[<A HREF="#top">top</A>][<A HREF="#file1">prev</A>][<A HREF="#file3">next</A>]
+<PRE>
+#<B><FONT COLOR="#5F9EA0">include</FONT></B> <B><FONT COLOR="#BC8F8F">&quot;mcParticle.H&quot;</FONT></B>
+#<B><FONT COLOR="#5F9EA0">include</FONT></B> <B><FONT COLOR="#BC8F8F">&quot;mcParticleCloud.H&quot;</FONT></B>
+
+namespace Foam
+{
+    defineTypeNameAndDebug(mcParticle, 0);
+}
+
+
+Foam::mcParticle::mcParticle
+(<B><FONT COLOR="#228B22">const</FONT></B> mcParticleCloud&amp; c, <B><FONT COLOR="#228B22">const</FONT></B> vector&amp; pos,
+label celli, scalar m, <B><FONT COLOR="#228B22">const</FONT></B> vector&amp; U, scalar rho);
+:
+    particle(c.pMesh(), pos, celli),
+    m_(m),
+    U_(U),
+    Ut_(),
+    rho_(rho),
+    n_(0),
+    b_(false)
+{}
+
+
+<B><FONT COLOR="#228B22">bool</FONT></B> Foam::mcParticle::move
+(
+    <B><FONT COLOR="#5F9EA0">mcParticle</FONT></B>::trackingData&amp; td,
+    <B><FONT COLOR="#228B22">const</FONT></B> scalar trackTime
+)
+{
+    td.switchProcessor = false;
+    td.keepParticle = true;
+    <B><FONT COLOR="#228B22">const</FONT></B> mcParticleCloud&amp; mcpc = refCast&lt;mcParticleCloud&gt;(td.cloud());
+    <B><FONT COLOR="#228B22">const</FONT></B> polyMesh&amp; mesh = mcpc.pMesh();
+    <B><FONT COLOR="#228B22">const</FONT></B> polyBoundaryMesh&amp; pbMesh = mesh.boundaryMesh();
+
+    scalar tEnd = (1.0 - stepFraction())*trackTime;
+    scalar dtMax = tEnd;
+
+    <I><FONT COLOR="#B22222">// At beginning of time step, update velocity
+</FONT></I>    <B><FONT COLOR="#A020F0">if</FONT></B> (stepFraction() &lt; SMALL)
+    {
+        <I><FONT COLOR="#B22222">/* SKIPPED U_ +=  .... ; */</FONT></I>
+    }
+
+    <I><FONT COLOR="#B22222">// Compute tracking velocity (i.e. handle 2D and wedge cases)
+</FONT></I>    Ut_ = U_;
+    <B><FONT COLOR="#5F9EA0">meshTools</FONT></B>::constrainDirection(mesh, mesh.solutionD(), Ut_);
+    point destPos = position() + tEnd * Ut_;
+    <B><FONT COLOR="#A020F0">if</FONT></B> (mcpc.isAxiSymmetric())
+    {
+        vector rotatedCentreNormal = mcpc.axis()^destPos;
+        rotatedCentreNormal /= mag(rotatedCentreNormal);
+        tensor T = rotationTensor(rotatedCentreNormal, mcpc.centrePlaneNormal());
+        transformProperties(T);
+        destPos = transform(T, destPos);
+        <I><FONT COLOR="#B22222">// constrain to kill numerical artifacts
+</FONT></I>        <B><FONT COLOR="#5F9EA0">meshTools</FONT></B>::constrainDirection(mesh, mesh.geometricD(), destPos);
+        Ut_ = (destPos - position())/tEnd;
+    }
+
+    <B><FONT COLOR="#A020F0">while</FONT></B> (td.keepParticle &amp;&amp; !td.switchProcessor &amp;&amp; tEnd &gt; SMALL)
+    {
+        scalar dt = min(dtMax, tEnd);
+        destPos = position() + dt*Ut_;
+        <I><FONT COLOR="#B22222">// do actual tracking
+</FONT></I>        scalar tf = trackToFace(destPos, td);
+        ++nSteps_;
+        dt *= tf;
+        tEnd -= dt;
+        stepFraction() = 1.0 - tEnd/trackTime;
+
+        <B><FONT COLOR="#A020F0">if</FONT></B> (onBoundary() &amp;&amp; td.keepParticle)
+        {
+            <B><FONT COLOR="#A020F0">if</FONT></B> (isA&lt;processorPolyPatch&gt;(pbMesh[patch(face())]))
+            {
+                td.switchProcessor = true;
+            }
+        }
+    }
+    <B><FONT COLOR="#A020F0">return</FONT></B> td.keepParticle;
+}
+
+
+<B><FONT COLOR="#228B22">void</FONT></B> <B><FONT COLOR="#0000FF">Foam::mcParticle::transformProperties</FONT></B> (<B><FONT COLOR="#228B22">const</FONT></B> tensor&amp; T)
+{
+    <B><FONT COLOR="#5F9EA0">particle</FONT></B>::transformProperties(T);
+    U_ = transform(T, U_);
+    Ut_ = transform(T, Ut_);
+}
+
+
+<B><FONT COLOR="#228B22">void</FONT></B> <B><FONT COLOR="#0000FF">Foam::mcParticle::transformProperties</FONT></B>(<B><FONT COLOR="#228B22">const</FONT></B> vector&amp; separation)
+{
+    <B><FONT COLOR="#5F9EA0">particle</FONT></B>::transformProperties(separation);
+}
+
+<I><FONT COLOR="#B22222">// SKIPPED hit*Patch(...) FUNCTIONS
+</FONT></I></PRE>
+<HR>
+<A NAME="file3">
+<H1>mcParticleIO.C 3/5</H1>
+[<A HREF="#top">top</A>][<A HREF="#file2">prev</A>][<A HREF="#file4">next</A>]
+<PRE>
+#<B><FONT COLOR="#5F9EA0">include</FONT></B> <B><FONT COLOR="#BC8F8F">&quot;mcParticle.H&quot;</FONT></B>
+#<B><FONT COLOR="#5F9EA0">include</FONT></B> <B><FONT COLOR="#BC8F8F">&quot;IOstreams.H&quot;</FONT></B>
+#<B><FONT COLOR="#5F9EA0">include</FONT></B> <B><FONT COLOR="#BC8F8F">&quot;mcParticleCloud.H&quot;</FONT></B>
+
+Foam::mcParticle::mcParticle
+(
+    <B><FONT COLOR="#228B22">const</FONT></B> Cloud&lt;mcParticle&gt;&amp; cloud,
+    Istream&amp; is,
+    <B><FONT COLOR="#228B22">bool</FONT></B> readFields
+)
+:
+    particle(cloud.pMesh(), is, readFields)
+{
+    <B><FONT COLOR="#A020F0">if</FONT></B> (readFields)
+    {
+        <B><FONT COLOR="#A020F0">if</FONT></B> (is.format() == IOstream::ASCII)
+        {
+            m_ = readScalar(is);
+            is  &gt;&gt; U_
+                &gt;&gt; Ut_
+                &gt;&gt; rho_
+                ;
+        }
+        <B><FONT COLOR="#A020F0">else</FONT></B>
+        {
+            is.read
+            (
+                reinterpret_cast&lt;<B><FONT COLOR="#228B22">char</FONT></B>*&gt;(&amp;m_),
+                <B><FONT COLOR="#A020F0">sizeof</FONT></B>(m_) + <B><FONT COLOR="#A020F0">sizeof</FONT></B>(U_) + <B><FONT COLOR="#A020F0">sizeof</FONT></B>(Ut_) + <B><FONT COLOR="#A020F0">sizeof</FONT></B>(rho_)
+            );
+        }
+    }
+    <I><FONT COLOR="#B22222">// Check state of Istream
+</FONT></I>    is.check(<B><FONT COLOR="#BC8F8F">&quot;mcParticle::mcParticle(Istream&amp;)&quot;</FONT></B>);
+}
+
+
+<B><FONT COLOR="#228B22">void</FONT></B> <B><FONT COLOR="#0000FF">Foam::mcParticle::readFields</FONT></B>(Cloud&lt;mcParticle&gt;&amp; c)
+{
+    <B><FONT COLOR="#A020F0">if</FONT></B> (!c.size())
+    {
+        <B><FONT COLOR="#A020F0">return</FONT></B>;
+    }
+    <B><FONT COLOR="#5F9EA0">particle</FONT></B>::readFields(c);
+
+    mcParticleCloud&amp; mcpc = refCast&lt;mcParticleCloud&gt;(c);
+
+    IOField&lt;scalar&gt; m(c.fieldIOobject(<B><FONT COLOR="#BC8F8F">&quot;m&quot;</FONT></B>, IOobject::MUST_READ));
+    c.checkFieldIOobject(c, m);
+
+    IOField&lt;vector&gt; U(c.fieldIOobject(<B><FONT COLOR="#BC8F8F">&quot;U&quot;</FONT></B>, IOobject::MUST_READ));
+    c.checkFieldIOobject(c, U);
+
+    IOField&lt;scalar&gt; rho(c.fieldIOobject(<B><FONT COLOR="#BC8F8F">&quot;rho&quot;</FONT></B>, IOobject::MUST_READ));
+    c.checkFieldIOobject(c, rho);
+
+    label i = 0;
+    forAllIter(Cloud&lt;mcParticle&gt;, c, iter)
+    {
+        mcParticle&amp; p = iter();
+
+        p.m_ = m[i];
+        p.U_ = U[i];
+        p.rho_ = rho[i];
+        ++i;
+    }
+}
+
+
+<B><FONT COLOR="#228B22">void</FONT></B> <B><FONT COLOR="#0000FF">Foam::mcParticle::writeFields</FONT></B>(<B><FONT COLOR="#228B22">const</FONT></B> Cloud&lt;mcParticle&gt;&amp; c)
+{
+    <B><FONT COLOR="#5F9EA0">particle</FONT></B>::writeFields(c);
+
+    <B><FONT COLOR="#228B22">const</FONT></B> mcParticleCloud&amp; mcpc = refCast&lt;<B><FONT COLOR="#228B22">const</FONT></B> mcParticleCloud&gt;(c);
+
+    label np = c.size();
+
+    IOField&lt;scalar&gt; m(c.fieldIOobject(<B><FONT COLOR="#BC8F8F">&quot;m&quot;</FONT></B>, IOobject::NO_READ), np);
+    IOField&lt;vector&gt; U(c.fieldIOobject(<B><FONT COLOR="#BC8F8F">&quot;U&quot;</FONT></B>, IOobject::NO_READ), np);
+    IOField&lt;scalar&gt; rho(c.fieldIOobject(<B><FONT COLOR="#BC8F8F">&quot;rho&quot;</FONT></B>, IOobject::NO_READ), np);
+
+    label i = 0;
+    forAllConstIter(Cloud&lt;mcParticle&gt;, c, iter)
+    {
+        <B><FONT COLOR="#228B22">const</FONT></B> mcParticle&amp; p = iter();
+
+        m[i] = p.m_;
+        U[i] = p.U_;
+        rho[i] = p.rho_;
+        i++;
+    }
+
+    m.write();
+    U.write();
+    rho.write();
+}
+
+
+Foam::Ostream&amp; Foam::<B><FONT COLOR="#A020F0">operator</FONT></B>&lt;&lt;(Ostream&amp; os, <B><FONT COLOR="#228B22">const</FONT></B> mcParticle&amp; p)
+{
+    <B><FONT COLOR="#A020F0">if</FONT></B> (os.format() == IOstream::ASCII)
+    {
+        os  &lt;&lt; static_cast&lt;<B><FONT COLOR="#228B22">const</FONT></B> particle&amp;&gt;(p)
+            &lt;&lt; token::SPACE &lt;&lt; p.m_
+            &lt;&lt; token::SPACE &lt;&lt; p.U_
+            &lt;&lt; token::SPACE &lt;&lt; p.Ut_
+            &lt;&lt; token::SPACE &lt;&lt; p.rho_;
+    }
+    <B><FONT COLOR="#A020F0">else</FONT></B>
+    {
+        os  &lt;&lt; static_cast&lt;<B><FONT COLOR="#228B22">const</FONT></B> particle&amp;&gt;(p);
+        os.write
+        (
+            reinterpret_cast&lt;<B><FONT COLOR="#228B22">const</FONT></B> <B><FONT COLOR="#228B22">char</FONT></B>*&gt;(&amp;p.m_),
+            <B><FONT COLOR="#A020F0">sizeof</FONT></B>(p.m_) + <B><FONT COLOR="#A020F0">sizeof</FONT></B>(p.U_) + <B><FONT COLOR="#A020F0">sizeof</FONT></B>(p.Ut_) + <B><FONT COLOR="#A020F0">sizeof</FONT></B>(p.rho_)
+        );
+    }
+    <I><FONT COLOR="#B22222">// Check state of Ostream
+</FONT></I>    os.check(<B><FONT COLOR="#BC8F8F">&quot;Ostream&amp; operator&lt;&lt;(Ostream&amp;, const mcParticle&amp;)&quot;</FONT></B>);
+    <B><FONT COLOR="#A020F0">return</FONT></B> os;
+}
+</PRE>
+<HR>
+<A NAME="file4">
+<H1>mcParticleCloud.H 4/5</H1>
+[<A HREF="#top">top</A>][<A HREF="#file3">prev</A>][<A HREF="#file5">next</A>]
+<PRE>
+<I><FONT COLOR="#B22222">/*---------------------------------------------------------------------------*\
+Class
+    Foam::mcParticleCloud
+
+Description
+    Incomplete example illustrating how to implement a custom particle cloud.
+
+Author
+    Michael Wild
+
+SourceFiles
+    mcParticleCloud.C
+
+\*---------------------------------------------------------------------------*/</FONT></I>
+
+#<B><FONT COLOR="#5F9EA0">ifndef</FONT></B> <FONT COLOR="#B8860B">mcParticleCloud_H</FONT>
+#<B><FONT COLOR="#5F9EA0">define</FONT></B> <FONT COLOR="#B8860B">mcParticleCloud_H</FONT>
+
+#<B><FONT COLOR="#5F9EA0">include</FONT></B> <B><FONT COLOR="#BC8F8F">&quot;Cloud.H&quot;</FONT></B>
+#<B><FONT COLOR="#5F9EA0">include</FONT></B> <B><FONT COLOR="#BC8F8F">&quot;mcParticle.H&quot;</FONT></B>
+#<B><FONT COLOR="#5F9EA0">include</FONT></B> <B><FONT COLOR="#BC8F8F">&quot;dictionary.H&quot;</FONT></B>
+
+<B><FONT COLOR="#228B22">class</FONT></B> mcParticleCloud:
+    <B><FONT COLOR="#228B22">public</FONT></B> Cloud&lt;mcParticle&gt;
+{
+  <I><FONT COLOR="#B22222">// Private Data
+</FONT></I>
+    <I><FONT COLOR="#B22222">//- FV velocity
+</FONT></I>    <B><FONT COLOR="#228B22">const</FONT></B> volVectorField&amp; Ufv_;
+    <I><FONT COLOR="#B22222">//- FV pressure
+</FONT></I>    <B><FONT COLOR="#228B22">const</FONT></B> volScalarField&amp; pfv_;
+    <I><FONT COLOR="#B22222">//- Averaged 0th statistical moment
+</FONT></I>    DimensionedField&lt;scalar, volMesh&gt; mMom_;
+    <I><FONT COLOR="#B22222">//- Averaged 1st statistical moment of inverse density (volume)
+</FONT></I>    DimensionedField&lt;vector, volMesh&gt; VMom_;
+    <I><FONT COLOR="#B22222">//- Averaged 1st statistical moment of velocity
+</FONT></I>    DimensionedField&lt;vector, volMesh&gt; UMom_;
+    <I><FONT COLOR="#B22222">//- Averaged 2nd statistical moment of fluctuating velocity
+</FONT></I>    DimensionedField&lt;symmTensor, volMesh&gt; uuMom_;
+    <I><FONT COLOR="#B22222">//- Extracted, time-averaged density
+</FONT></I>    volScalarField rho_;
+    <I><FONT COLOR="#B22222">//- Extracted, time-averaged particle-mass density
+</FONT></I>    volScalarField pmd_;
+    <I><FONT COLOR="#B22222">//- Extracted, time-averaged velocity
+</FONT></I>    volVectorField U_;
+    <I><FONT COLOR="#B22222">//- Extracted, time-averaged turbulent stress tensor
+</FONT></I>    volSymmTensorField Tau_;
+    <I><FONT COLOR="#B22222">//- Extracted, time-averaged TKE
+</FONT></I>    volScalarField k_;
+
+  <I><FONT COLOR="#B22222">// Private Member Functions
+</FONT></I>
+    <I><FONT COLOR="#B22222">//- Update moments and the quantities remembered by particles
+</FONT></I>    <B><FONT COLOR="#228B22">void</FONT></B> updateCloudPDF(scalar existWt);
+
+    <I><FONT COLOR="#B22222">//- Initialize statistical moments
+</FONT></I>    <B><FONT COLOR="#228B22">void</FONT></B> initMoments();
+
+    <I><FONT COLOR="#B22222">//- Disallow default bitwise copy construct
+</FONT></I>    mcParticleCloud(<B><FONT COLOR="#228B22">const</FONT></B> mcParticleCloud&amp;);
+    <I><FONT COLOR="#B22222">//- Disallow default bitwise assignment
+</FONT></I>    <B><FONT COLOR="#228B22">void</FONT></B> <B><FONT COLOR="#A020F0">operator</FONT></B>=(<B><FONT COLOR="#228B22">const</FONT></B> mcParticleCloud&amp;);
+
+<B><FONT COLOR="#228B22">public</FONT></B>:
+
+  <I><FONT COLOR="#B22222">// Constructors
+</FONT></I>
+    <I><FONT COLOR="#B22222">//- Construct from components
+</FONT></I>    <I><FONT COLOR="#B22222">// If U, p or rho are NULL, they are looked up by the names defined by the
+</FONT></I>    <I><FONT COLOR="#B22222">// UName, pName rhoName entries (defaulting to U, p and rho, respectively)
+</FONT></I>    mcParticleCloud
+    (
+      <B><FONT COLOR="#228B22">const</FONT></B> fvMesh&amp; mesh,
+      <B><FONT COLOR="#228B22">const</FONT></B> dictionary&amp; dict,
+      <B><FONT COLOR="#228B22">const</FONT></B> word&amp; cloudName = <B><FONT COLOR="#BC8F8F">&quot;defaultCloud&quot;</FONT></B>,
+      <B><FONT COLOR="#228B22">const</FONT></B> volVectorField* U = 0,
+      <B><FONT COLOR="#228B22">const</FONT></B> volScalarField* p = 0,
+      <B><FONT COLOR="#228B22">const</FONT></B> volScalarField* rho = 0
+    );
+
+  <I><FONT COLOR="#B22222">// Access
+</FONT></I>
+    <I><FONT COLOR="#B22222">//- Returns the FV TKE field (SKIPPED HERE)
+</FONT></I>    <B><FONT COLOR="#228B22">const</FONT></B> volScalarField&amp; kfv() <B><FONT COLOR="#228B22">const</FONT></B>;
+
+    <I><FONT COLOR="#B22222">//- Returns the FV turbulence frequency field (SKIPPED HERE)
+</FONT></I>    <B><FONT COLOR="#228B22">const</FONT></B> volScalarField&amp; omega() <B><FONT COLOR="#228B22">const</FONT></B>;
+
+    <I><FONT COLOR="#B22222">//- Returns true if the case uses a wedge geometry
+</FONT></I>    <B><FONT COLOR="#228B22">bool</FONT></B> isAxiSymmetric() <B><FONT COLOR="#228B22">const</FONT></B>;
+
+    <I><FONT COLOR="#B22222">//- Axis of the wedge (only defined if isAxiSymmetric())
+</FONT></I>    <B><FONT COLOR="#228B22">const</FONT></B> vector&amp; axis() <B><FONT COLOR="#228B22">const</FONT></B>;
+
+    <I><FONT COLOR="#B22222">//- Centre plane of the wedge (only defined if isAxiSymmetric())
+</FONT></I>    <B><FONT COLOR="#228B22">const</FONT></B> vector&amp; centrePlaneNormal() <B><FONT COLOR="#228B22">const</FONT></B>;
+
+  <I><FONT COLOR="#B22222">// Public Member Functions
+</FONT></I>
+    <I><FONT COLOR="#B22222">//- Initialize the particle cloud
+</FONT></I>    <B><FONT COLOR="#228B22">void</FONT></B> initReleaseParticles();
+
+    <I><FONT COLOR="#B22222">//- Randomly generate N particles in celli, with provided cell-based
+</FONT></I>    <I><FONT COLOR="#B22222">// values and the scale of velocity fluctuation
+</FONT></I>    <B><FONT COLOR="#228B22">void</FONT></B> particleGenInCell
+    (
+      label celli,
+      label N,
+      scalar m,
+      <B><FONT COLOR="#228B22">const</FONT></B> vector&amp; U,
+      <B><FONT COLOR="#228B22">const</FONT></B> vector&amp; urms
+    );
+
+    <I><FONT COLOR="#B22222">//- Evolve the particles
+</FONT></I>    <B><FONT COLOR="#228B22">void</FONT></B> evolve();
+};
+
+#<B><FONT COLOR="#5F9EA0">endif</FONT></B>
+</PRE>
+<HR>
+<A NAME="file5">
+<H1>mcParticleCloud.C 5/5</H1>
+[<A HREF="#top">top</A>][<A HREF="#file4">prev</A>][next]
+<PRE>
+#<B><FONT COLOR="#5F9EA0">include</FONT></B> <B><FONT COLOR="#BC8F8F">&quot;mcParticleCloud.H&quot;</FONT></B>
+#<B><FONT COLOR="#5F9EA0">include</FONT></B> <B><FONT COLOR="#BC8F8F">&quot;fvMesh.H&quot;</FONT></B>
+#<B><FONT COLOR="#5F9EA0">include</FONT></B> <B><FONT COLOR="#BC8F8F">&quot;interpolationCellPointFace.H&quot;</FONT></B>
+#<B><FONT COLOR="#5F9EA0">include</FONT></B> <B><FONT COLOR="#BC8F8F">&quot;boundBox.H&quot;</FONT></B>
+#<B><FONT COLOR="#5F9EA0">include</FONT></B> <B><FONT COLOR="#BC8F8F">&quot;fvc.H&quot;</FONT></B>
+
+namespace Foam
+{
+
+    defineTemplateTypeNameAndDebug(Cloud&lt;mcParticle&gt;, 0);
+}
+
+
+Foam::mcParticleCloud::mcParticleCloud
+(
+    <B><FONT COLOR="#228B22">const</FONT></B> fvMesh&amp; mesh,
+    <B><FONT COLOR="#228B22">const</FONT></B> dictionary&amp; dict,
+    <B><FONT COLOR="#228B22">const</FONT></B> word&amp; cloudName,
+    <B><FONT COLOR="#228B22">const</FONT></B> volVectorField* U,
+    <B><FONT COLOR="#228B22">const</FONT></B> volScalarField* p,
+    volScalarField* rho
+)
+:
+    Cloud&lt;mcParticle&gt;(mesh, cloudName, false),
+    mesh_(mesh),
+    dict_(dict),
+    runTime_(mesh.time()),
+    Ufv_
+    (
+        U ? *U : mesh_.lookupObject&lt;volVectorField&gt;
+                     (dict_.lookupOrDefault&lt;word&gt;(<B><FONT COLOR="#BC8F8F">&quot;UName&quot;</FONT></B>, <B><FONT COLOR="#BC8F8F">&quot;U&quot;</FONT></B>))
+    ),
+    pfv_
+    (
+        p ? *p : mesh_.lookupObject&lt;volScalarField&gt;
+                     (dict_.lookupOrDefault&lt;word&gt;(<B><FONT COLOR="#BC8F8F">&quot;pName&quot;</FONT></B>, <B><FONT COLOR="#BC8F8F">&quot;p&quot;</FONT></B>))
+    ),
+    mMom_
+    (
+        IOobject
+        (
+            <B><FONT COLOR="#BC8F8F">&quot;mMoment&quot;</FONT></B>,
+            runTime_.timeName(),
+            mesh_,
+            <B><FONT COLOR="#5F9EA0">IOobject</FONT></B>::READ_IF_PRESENT,
+            <B><FONT COLOR="#5F9EA0">IOobject</FONT></B>::AUTO_WRITE
+        ),
+        mesh,
+        dimensionedScalar(<B><FONT COLOR="#BC8F8F">&quot;mMoment&quot;</FONT></B>, dimMass, 0)
+    ),
+    VMom_
+    (
+        IOobject
+        (
+            <B><FONT COLOR="#BC8F8F">&quot;VMoment&quot;</FONT></B>,
+            runTime_.timeName(),
+            mesh_,
+            <B><FONT COLOR="#5F9EA0">IOobject</FONT></B>::READ_IF_PRESENT,
+            <B><FONT COLOR="#5F9EA0">IOobject</FONT></B>::AUTO_WRITE
+        ),
+        mesh,
+        dimensionedScalar(<B><FONT COLOR="#BC8F8F">&quot;VMoment&quot;</FONT></B>, dimVolume, 0)
+    ),
+    UMom_
+    (
+        IOobject
+        (
+            <B><FONT COLOR="#BC8F8F">&quot;UMoment&quot;</FONT></B>,
+            runTime_.timeName(),
+            mesh,
+            <B><FONT COLOR="#5F9EA0">IOobject</FONT></B>::READ_IF_PRESENT,
+            <B><FONT COLOR="#5F9EA0">IOobject</FONT></B>::AUTO_WRITE
+        ),
+        mesh,
+        dimensionedVector(<B><FONT COLOR="#BC8F8F">&quot;UMoment&quot;</FONT></B>, dimMass*dimVelocity, vector::zero)
+    ),
+    uuMom_
+    (
+        IOobject
+        (
+            <B><FONT COLOR="#BC8F8F">&quot;uuMoment&quot;</FONT></B>,
+            runTime_.timeName(),
+            mesh,
+            <B><FONT COLOR="#5F9EA0">IOobject</FONT></B>::READ_IF_PRESENT,
+            <B><FONT COLOR="#5F9EA0">IOobject</FONT></B>::AUTO_WRITE
+        ),
+        mesh,
+        dimensionedSymmTensor(<B><FONT COLOR="#BC8F8F">&quot;uuMoment&quot;</FONT></B>, dimEnergy, symmTensor::zero)
+    ),
+    rho_
+    (
+        rho ? *rho : const_cast&lt;volScalarField&amp;&gt;(
+            mesh_.lookupObject&lt;volScalarField&gt;(
+                dict_.lookupOrDefault&lt;word&gt;(<B><FONT COLOR="#BC8F8F">&quot;rhoName&quot;</FONT></B>, <B><FONT COLOR="#BC8F8F">&quot;rho&quot;</FONT></B>)))
+    ),
+    pmd_
+    (
+        IOobject
+        (
+            <B><FONT COLOR="#BC8F8F">&quot;pmd&quot;</FONT></B>,
+            runTime_.timeName(),
+            mesh,
+            <B><FONT COLOR="#5F9EA0">IOobject</FONT></B>::READ_IF_PRESENT,
+            <B><FONT COLOR="#5F9EA0">IOobject</FONT></B>::AUTO_WRITE
+        ),
+        mesh_,
+        dimDensity,
+        mMom_/mesh_.V(),
+        rhocPdf_.boundaryField()
+    ),
+    U_
+    (
+        IOobject
+        (
+            <B><FONT COLOR="#BC8F8F">&quot;UPdf&quot;</FONT></B>,
+            runTime_.timeName(),
+            mesh,
+            <B><FONT COLOR="#5F9EA0">IOobject</FONT></B>::READ_IF_PRESENT,
+            <B><FONT COLOR="#5F9EA0">IOobject</FONT></B>::AUTO_WRITE
+        ),
+        mesh_,
+        dimVelocity,
+        UMom_/max(mMom_, SMALL_MASS),
+        Ufv_.boundaryField()
+    ),
+    Tau_
+    (
+        IOobject
+        (
+            <B><FONT COLOR="#BC8F8F">&quot;TauPdf&quot;</FONT></B>,
+            runTime_.timeName(),
+            mesh,
+            <B><FONT COLOR="#5F9EA0">IOobject</FONT></B>::READ_IF_PRESENT,
+            <B><FONT COLOR="#5F9EA0">IOobject</FONT></B>::AUTO_WRITE
+        ),
+        <I><FONT COLOR="#B22222">/* SKIPPED INIT AND BC */</FONT></I>
+    ),
+
+    k_
+    (
+        IOobject
+        (
+            <B><FONT COLOR="#BC8F8F">&quot;kPdf&quot;</FONT></B>,
+            runTime_.timeName(),
+            mesh,
+            <B><FONT COLOR="#5F9EA0">IOobject</FONT></B>::READ_IF_PRESENT,
+            <B><FONT COLOR="#5F9EA0">IOobject</FONT></B>::AUTO_WRITE
+        ),
+        mesh_,
+        dimVelocity*dimVelocity,
+        0.5*tr(TaucPdf_.dimensionedInternalField()),
+        <I><FONT COLOR="#B22222">/* SKIPPED BC */</FONT></I>
+    )
+{
+    <I><FONT COLOR="#B22222">// If particle data found, read from files. Otherwise, initialize.
+</FONT></I>    <B><FONT COLOR="#A020F0">if</FONT></B> (size() &gt; 0)
+    {
+        <B><FONT COLOR="#5F9EA0">mcParticle</FONT></B>::readFields(*<B><FONT COLOR="#A020F0">this</FONT></B>);
+    }
+    <B><FONT COLOR="#A020F0">else</FONT></B>
+    {
+        initReleaseParticles();
+    }
+    initMoments();
+    updateParticlePDF();
+}
+
+
+Foam::scalar Foam::mcParticleCloud::evolve()
+{
+    <I><FONT COLOR="#B22222">// SKIPPED RELEASE PARTICLES AT INLET PATCHES
+</FONT></I>
+    <I><FONT COLOR="#B22222">// Time-averaging factor
+</FONT></I>    scalar existWt = 1.0/(1.0 + (runTime_.deltaT()/AvgTimeScale_).value());
+
+    <B><FONT COLOR="#5F9EA0">mcParticle</FONT></B>::trackingData td(<I><FONT COLOR="#B22222">/* ... */</FONT></I>);
+
+    Cloud&lt;mcParticle&gt;::move(td, runTime_.deltaT().value());
+
+    <I><FONT COLOR="#B22222">// Extract statistical averaging to obtain mesh-based quantities
+</FONT></I>    updateCloudPDF(existWt);
+}
+
+
+<B><FONT COLOR="#228B22">void</FONT></B> <B><FONT COLOR="#0000FF">Foam::mcParticleCloud::updateCloudPDF</FONT></B>(scalar existWt)
+{
+    DimensionedField&lt;scalar, volMesh&gt; mMomInstant
+    (
+        IOobject
+        (
+            <B><FONT COLOR="#BC8F8F">&quot;mMomInstant&quot;</FONT></B>,
+            mesh_.time().timeName(),
+            mesh_,
+            <B><FONT COLOR="#5F9EA0">IOobject</FONT></B>::NO_READ,
+            <B><FONT COLOR="#5F9EA0">IOobject</FONT></B>::NO_WRITE
+        ),
+        mesh_,
+        dimensionedScalar(<B><FONT COLOR="#BC8F8F">&quot;mMomInstant&quot;</FONT></B>, dimMass, 0.0)
+    );
+    <I><FONT COLOR="#B22222">// ...
+</FONT></I>    <I><FONT COLOR="#B22222">// Similar for VMomInstant, UMomInstant and uuMomInstant
+</FONT></I>    <I><FONT COLOR="#B22222">// ...
+</FONT></I>
+    <I><FONT COLOR="#B22222">// Loop through particles to accumulate moments (0, 1, 2 order)
+</FONT></I>    interpolationCellPointFace&lt;vector&gt; UInterp(Ufv_);
+    forAllConstIter(mcParticleCloud, *<B><FONT COLOR="#A020F0">this</FONT></B>, pIter)
+    {
+        <B><FONT COLOR="#228B22">const</FONT></B> mcParticle&amp; p = pIter();
+        label cellI = p.cell();
+        vector U = UInterp.interpolate(p.position(), cellI, p.face());
+        vector u = p.U() - U;
+
+        <B><FONT COLOR="#228B22">const</FONT></B> scalar m = p.m();
+        mMomInstant[cellI]  += m;
+        VMomInstant[cellI]  += m / p.rho();
+        UMomInstant[cellI]  += m * p.U();
+        uuMomInstant[cellI] += m * symm(u*u);
+    }
+
+    scalar newWt = 1.0 - existWt;
+    <I><FONT COLOR="#B22222">// Do time-averaging of moments and compute mean fields
+</FONT></I>    mMom_  = existWt * mMom_  + newWt * mMomInstant;
+    pmd_.internalField() = mMom_ / mesh_.V();
+
+    VMom_  = existWt * VMom_  + newWt * VMomInstant;
+    rho_.internalField()   = mMom_ / VMom_;
+    rho_.correctBoundaryConditions();
+
+    UMom_  = existWt * UMom_  + newWt * UMomInstant;
+    U_.internalField()   = UMom_ / mMom_;
+    U_.correctBoundaryConditions();
+
+    uuMom_ = existWt * uuMom_ + newWt * uuMomInstant;
+    Tau_.internalField() = uuMom_/mMom_;
+    Tau_.correctBoundaryConditions();
+
+    k_.internalField()   = 0.5*tr(Tau_.internalField());
+    k_.correctBoundaryConditions();
+}
+
+
+<B><FONT COLOR="#228B22">void</FONT></B> <B><FONT COLOR="#0000FF">Foam::mcParticleCloud::initReleaseParticles</FONT></B>()
+{
+    <I><FONT COLOR="#B22222">// Populate each cell with 30 particles in each cell
+</FONT></I>    forAll(Ufv_, celli)
+    {
+        scalar m = mesh_.V()[celli]*rho_[celli] / 30;
+        vector U = U_[celli];
+        scalar urms = sqrt(2./3.*kfv()()[celli]);
+        vector uscales(urms, urms, urms);
+        particleGenInCell(celli, 30, m, U, uscales);
+    }
+}
+
+
+<B><FONT COLOR="#228B22">void</FONT></B> Foam::mcParticleCloud::particleGenInCell
+(
+    label celli,
+    label N,
+    scalar m,
+    <B><FONT COLOR="#228B22">const</FONT></B> vector&amp; Updf,
+    <B><FONT COLOR="#228B22">const</FONT></B> vector&amp; uscales
+)
+{
+    boundBox cellbb
+    (
+        pointField
+        (
+            mesh_.points(),
+            mesh_.cellPoints()[celli]
+        ),
+        false
+    );
+
+    vector minb = cellbb.min();
+    vector dimb = cellbb.max() - minb;
+
+    label Npgen = 0;
+    <B><FONT COLOR="#A020F0">for</FONT></B> (<B><FONT COLOR="#228B22">int</FONT></B> i = 0; i &lt; 100*N; ++i)
+    {
+        <I><FONT COLOR="#B22222">// Relative coordinate [0, 1] in this cell
+</FONT></I>        vector xi = random().vector01();
+        <I><FONT COLOR="#B22222">// Random offset from min point
+</FONT></I>        scalar rx = min(max(10.0*SMALL, xi.x()), 1.0-10.0*SMALL);
+        scalar ry = min(max(10.0*SMALL, xi.y()), 1.0-10.0*SMALL);
+        scalar rz = min(max(10.0*SMALL, xi.z()), 1.0-10.0*SMALL);
+        vector offsetRnd(rx*dimb.x(), ry*dimb.y(), rz*dimb.z());
+
+        <I><FONT COLOR="#B22222">// Generate a particle position
+</FONT></I>        vector position = minb + offsetRnd;
+
+        <I><FONT COLOR="#B22222">// If the case has reduced dimensionality, put the coordinate of the
+</FONT></I>        <I><FONT COLOR="#B22222">// reduced dimension onto the coordinate plane
+</FONT></I>        <B><FONT COLOR="#A020F0">if</FONT></B> (mesh_.nGeometricD() &lt;= 2)
+        {
+            <B><FONT COLOR="#5F9EA0">meshTools</FONT></B>::constrainDirection(mesh_, mesh_.geometricD(), position);
+        }
+
+        <I><FONT COLOR="#B22222">// Initially put N particle per cell
+</FONT></I>        <B><FONT COLOR="#A020F0">if</FONT></B> (mesh_.pointInCell(position, celli))
+        {
+            <I><FONT COLOR="#B22222">// random() not shown here
+</FONT></I>            vector u
+            (
+              random().GaussNormal()*uscales.x(),
+              random().GaussNormal()*uscales.y(),
+              random().GaussNormal()*uscales.z()
+            );
+            vector Up = u + U;
+
+            mcParticle* ptr = <B><FONT COLOR="#A020F0">new</FONT></B> mcParticle
+            (
+                *<B><FONT COLOR="#A020F0">this</FONT></B>,
+                position,
+                celli,
+                m,
+                Up,
+                rho_[celli]
+            );
+
+            addParticle(ptr);
+            ++Npgen;
+        }
+
+        <I><FONT COLOR="#B22222">// until enough particles are generated.
+</FONT></I>        <B><FONT COLOR="#A020F0">if</FONT></B> (Npgen &gt;= N) <B><FONT COLOR="#A020F0">break</FONT></B>;
+    }
+
+    <B><FONT COLOR="#A020F0">if</FONT></B> (Npgen &lt; N)
+    {
+        FatalErrorIn(<B><FONT COLOR="#BC8F8F">&quot;mcParticleCloud::initReleaseParticles()&quot;</FONT></B>)
+            &lt;&lt; <B><FONT COLOR="#BC8F8F">&quot;Only &quot;</FONT></B> &lt;&lt; Npgen &lt;&lt; <B><FONT COLOR="#BC8F8F">&quot; particles generated for cell &quot;</FONT></B>
+            &lt;&lt; celli &lt;&lt; nl &lt;&lt; <B><FONT COLOR="#BC8F8F">&quot;Something is wrong&quot;</FONT></B> &lt;&lt; exit(FatalError);
+    }
+}
+
+
+<B><FONT COLOR="#228B22">void</FONT></B> <B><FONT COLOR="#0000FF">Foam::mcParticleCloud::initMoments</FONT></B>()
+{
+    <B><FONT COLOR="#228B22">bool</FONT></B> readOk =
+        mMom_.headerOk() &amp;&amp;
+        VMom_.headerOk() &amp;&amp;
+        UMom_.headerOk() &amp;&amp;
+        uuMom_.headerOk();
+    <B><FONT COLOR="#A020F0">if</FONT></B> (readOk)
+    {
+        Info&lt;&lt; <B><FONT COLOR="#BC8F8F">&quot;Moments read correctly.&quot;</FONT></B> &lt;&lt; endl;
+    }
+    <B><FONT COLOR="#A020F0">else</FONT></B> <B><FONT COLOR="#A020F0">if</FONT></B> (size() &gt; 0)
+    {
+        Info&lt;&lt; <B><FONT COLOR="#BC8F8F">&quot;Moments are missing. Forced re-initialization.&quot;</FONT></B> &lt;&lt; endl;
+        mMom_  = mesh_.V()*rho_;
+        pmd_.internalField() = rho_.internalField();
+
+        VMom_  = mMom_/rho_;
+
+        UMom_  = mMom_*Ufv_;
+        U_.internalField() = Ufv_.internalField();
+        U_.correctBoundaryConditions();
+
+        uuMom_ = mMom_*turbulenceModel().R()();
+
+        k_.internalField() = kfv().internalField();
+        k_.correctBoundaryConditions();
+    }
+    <B><FONT COLOR="#A020F0">else</FONT></B>
+    {
+        FatalErrorIn(<B><FONT COLOR="#BC8F8F">&quot;mcParticleCloud::checkMoments()&quot;</FONT></B>)
+            &lt;&lt; <B><FONT COLOR="#BC8F8F">&quot;Not all moment fields available and no particles present.&quot;</FONT></B>
+            &lt;&lt; endl;
+    }
+}
+</PRE>
+<HR>
+<ADDRESS>Generated by <A HREF="http://www.iki.fi/~mtr/genscript/">GNU Enscript 1.6.5.90</A>.</ADDRESS>
+</BODY>
+</HTML>

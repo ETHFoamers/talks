@@ -1,0 +1,188 @@
+%!TEX TS-program = xelatex
+%!TEX encoding = UTF-8 Unicode
+\documentclass[11pt]{article}
+\usepackage{graphicx}
+\usepackage{natbib}
+\usepackage{enumerate}
+\usepackage{fullpage}
+
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{algorithm2e}
+
+\usepackage[usenames]{color}
+\usepackage{subfig}
+\usepackage{fixltx2e}
+
+\newcommand{\rans}[1]{\langle #1 \rangle}
+\newcommand{\avg}[1]{\langle #1 \rangle^{\textrm{\tiny AVG}}}
+\newcommand{\ke}{$k$--$\varepsilon$ }
+\newcommand{\kw}{$k$--$\omega$ }
+\newcommand{\uptiny}[1]{\textsuperscript{\tiny (#1)}}
+
+\setlength{\parskip}{\baselineskip}
+\setlength{\parindent}{0pt}
+\renewcommand{\baselinestretch}{1.35}
+
+\title{Reynolds Stress Model with Elliptic Relaxation}
+
+\author{Heng Xiao}
+
+\begin{document}
+\maketitle
+
+\section{Reynolds Averaged Navier Stokes Equations}
+
+General RANS equations:
+
+\begin{subequations} \label{eq:common}
+  \begin{align}
+  \frac{\partial  U_i}{\partial t}+\frac{\partial
+    \left(U_i U_j \right)}{\partial  x_j}  = & 
+  - \frac{1}{\rho} \frac{\partial p}{\partial
+    x_i}  +\nu\frac{\partial^2 U_i}{\partial x_j \partial
+    x_j}   - \frac{\partial \tau_{ij}}{\partial x_j} 
+     \label{eq:common-u}  \\
+\textrm{and} \quad
+\frac{1}{\rho} \frac{\partial^2  p}{\partial x_i\partial x_i}  = &
+  - \frac{\partial^2}{\partial x_i\partial
+    x_j}\left( U_i  U_j + \tau_{ij}
+  \right), \label{eq:common-p}
+\end{align}
+\end{subequations}
+where $t$ and $x_i$ are time and space coordinates, respectively;
+$\nu$ is the kinematic viscosity, $\rho$ is the constant fluid
+density, and $p$ is the pressure.  $U_i$, $p$, and $\tau_{ij}$
+represent Reynolds-averaged velocity $\rans{U_i}$, Reynolds-averaged
+pressure $\rans{p}$, and Reynolds stresses $\tau_{ij}$, respectively.
+
+\section{Reynolds Stress Transport Model}
+
+In the Reynolds stress transport model by Durbin (1993), the following
+ equations for the Reynolds stress and rate of dissipation are solved:
+\begin{align}
+\frac{\partial \tau_{ij}}{\partial t}+U_{k}
+\frac{\partial  \tau_{ij}}{\partial
+  x_{k}} & =
+P_{ij}  - \varepsilon_{ij} + D_{ij} + \mathcal{R}_{ij}  \\
+\frac{\partial \varepsilon}{\partial t} +  U_k \frac{\partial
+  \varepsilon }{\partial x_k} & =  
+\frac{C_{\varepsilon_1}^* P - C_{\varepsilon_2} \varepsilon}{T} +
+\frac{\partial}{\partial x_{i}}  \left[
+  \left( C_{\varepsilon} T \tau_{ij} + \nu \delta_{ij} \right)  \frac{\partial
+      \varepsilon} {\partial x_{j}} \right] \label{eqn:epsilon}
+\end{align}
+where $U_{k}$ is the Reynolds averaged velocity; $\tau_{ij}$ is the
+Reynolds stress tensor; and $\varepsilon = \frac{1}{2}
+\varepsilon_{ii}$ is the rate of dissipation of turbulent kinetic
+energy; $\delta_{ij}$ is the Kronecker delta.
+
+The turbulence stress production term
+\begin{equation}
+  \label{eq:Pij}
+ P_{ij} = -\tau_{ik} \frac{\partial U_{j}}{\partial x_{k}} -  
+ \tau_{jk} \frac{\partial U_{i}}{\partial x_{k}}
+\end{equation}
+is in closed form, and $P = \frac{1}{2}P_{ij}$.  The rate of dissipation
+$\varepsilon_{ij}$ and the diffusion $D_{ij}$ of the turbulent
+stresses are modeled as:
+\begin{align}
+\varepsilon_{ij} & = \frac{\varepsilon \tau_{ij}}{k} \\
+D_{ij} &  =  \frac{\partial} {\partial x_{k}}
+\left( \frac{C_{\mu}T}{\sigma^{(k)}} \tau_{km}
+  \frac{\partial \tau_{ij}}{\partial x_{m}} 
+\right)
+  +  \nu \frac{\partial^2 \tau_{ij}}{ \partial x_k}
+\label{eqn:Dij}
+\end{align}
+with the time scale $T$ defined by:
+\begin{equation}
+T=\max\left(\frac{k}{\varepsilon}, \;
+  C_T\left(\frac{\nu}{\varepsilon}\right)^{\frac{1}{2}}\right).   
+\end{equation}
+
+The pressure-rate-of-strain is obtained from:
+\begin{subequations}
+\begin{align}
+\mathcal{R}_{ij}&=k f_{ij},  \\
+ L^2\nabla^2f_{ij}-f_{ij}&=-\Pi_{ij}. \label{aeq:f}
+\end{align}
+\end{subequations}
+where the length scale $L$ is formulated as
+\begin{equation}
+L=C_L \max\left(\frac{k^\frac{3}{2}}{\varepsilon}, \;
+  C_{\eta}\left(\frac{\nu^3}{\varepsilon}\right)^{\frac{1}{4}}\right). 
+\end{equation}
+The source term $\Pi_{ij}$ in Equation~(\ref{aeq:f}) is given by
+Rotta's return to isotropy and isotropization of production terms:
+\begin{equation}
+ \Pi_{ij} =  \frac{1- C_1}{kT} \left( \tau_{ij} -\frac{2}{3}k
+ \delta_{ij}  \right) + \frac{C_2}{k} \left( P_{ij} - \frac{2}{3}P \delta_{ij} \right)
+\end{equation}
+
+Compared to the standard $\varepsilon$ models, the coefficient
+$C_{\varepsilon_1}^*$ in Equation~(\ref{eqn:epsilon}) is modified as
+follows $C_{\varepsilon_1}^* = C_{\varepsilon_1} (1 + a_1
+P/\varepsilon)$ to account for anisotropic production terms the wall.
+The value for all other coefficients in the models above are shown
+in Table~\ref{table1}.
+
+\begin{table}[h!]
+  \begin{center}
+  \caption{\label{table1}Model constants used in the Reynolds stress
+    model.} 
+  \begin{tabular}{ccccccccccc}
+    \hline
+    $C_1$ & $C_2$ & $C_{\varepsilon_1}$ &
+    $C_{\varepsilon_2}$ & $C_{\eta}$ & $C_{L}$ &
+    $C_{\mu}$ & $C_{T}$ & $\sigma^{(\varepsilon)}$ &
+    $\sigma^{(k)}$ & $a_1$ \\ 
+    \hline
+    1.22 & 0.6 & 1.44 & 1.9 & 80 & 0.25 & 0.23 & 6 & 1.65 & 1.2 & 0.1 \\ \hline
+  \end{tabular}
+\end{center}
+\end{table}
+
+
+The wall boundary conditions for $f_{ij}$ are imposed according to
+Manceau and Hanjali\'c (2002) as follows:
+\begin{align}
+ f_{ij}^{w}&=-\frac{20\nu^2}{\varepsilon}\frac{\tau_{ij}}{y^4}
+   \text{ for $f_{22}^{w}$, $f_{12}^{w}$ and 
+   $f_{23}^{w}$,} \nonumber \\ 
+ f_{ij}^{w}&=-\frac{1}{2}f_{22}^{w} \text{ for $f_{11}^{w}$,
+   $f_{33}^{w}$,} \label{eq:fbc} \\
+   f_{13}^{w}&=0, \nonumber
+\end{align}
+where $y$ is the wall distance of the first cell; indexes 1, 2, and 3
+indicate streamwise, wall-normal, and spanwise directions,
+respectively, based on local coordinate aligned with the wall.  The
+boundary conditions for $\tau_{ij}$ and $\varepsilon$ are $\tau_{ij}
+= 0$ and $\varepsilon=2\nu k/y^2$.
+
+\section{Implementation Notes}
+
+The following items were observed:
+\begin{enumerate}
+\item Imposing wall boundary conditions for $f_{ij}$ in a local coordinate
+system with $y$ coordinate (or direction 2) aligned with the
+wall-normal direction, and the $x$ coordinate aligned with mean flow
+direction at the cell nearest to wall. (Equation~(\ref{eq:fbc})).
+\item When estimating $y^+ = y/(\nu/\sqrt{\tau_w})$,  a
+  ``propagation`` is used, where $y$ is wall-distance, and $\tau_w$ is
+  the wall-shear stress.  The functionality is available in OpenFOAM
+  as class \verb+wallDistData+, which is used in van Driest damping.
+\end{enumerate}
+
+The following measures are taken during the implementation to ensure
+stability:
+\begin{enumerate}
+\item Removed off-diagonal terms for the diffusion coefficient
+  $C_{\mu} T \tau_{ij}$. This effectively prevents inverse
+  diffusion. (Equation~(\ref{eqn:Dij}))
+\item Harmonic interpolation of diffusion coefficient for $D_{ij}$
+  (effects not fully validated).
+\end{enumerate}
+
+
+\end{document}  
